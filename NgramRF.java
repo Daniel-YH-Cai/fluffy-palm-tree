@@ -1,9 +1,14 @@
-//package main;
+package main;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -35,10 +40,15 @@ public class NgramRF {
         //startIndex: If value starts with a non alphanumeric sequence, it might has a empty at the front after spliting
         protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             if(N==1){
-                // TODO: 1 gram code
                 String[] tokens=value.toString().split("[\\W]+");
                 int startIndex="".equals(tokens[0])?1:0;
-
+                for(int i=startIndex;i<tokens.length;i++){
+                    WordArrayWritable tmp=new WordArrayWritable();
+                    Writable[] w=new Writable[1];
+                    w[0]=new Text(tokens[i]);
+                    tmp.set(w);
+                    context.write(tmp,new IntWritable(1));
+                }
             }
             else{
                 String[] tokens=value.toString().split("[\\W]+");
@@ -82,7 +92,7 @@ public class NgramRF {
                 totalValues=totalValues+iw.get();
             }
             if(N==1){
-                //TODO: 1 gram code
+                context.write(key,new DoubleWritable(1));
             }
             else{
                 if(MARGINAL_SIGN.equals(ngram[1].toString())){
@@ -165,11 +175,20 @@ public class NgramRF {
             return ngramStart.hashCode()%numOfReducer;
         }
     }
-    //TODO: Combiner
-    public static void main(String[] args) {
-        //TODO: Main
+
+    public static void main(String[] args) throws IOException {
         if(Integer.parseInt(args[2])<1){
             throw new IllegalArgumentException("N-gram length must be at least 1");
         }
+        Configuration conf=new Configuration();
+        conf.set("N",args[2]);
+        conf.set("THETA",args[3]);
+        Job job=Job.getInstance(conf,"n-gram relative frequency count");
+        job.setMapperClass(NgramRF.NRFMapper.class);
+        job.setReducerClass(NgramRF.NRFReducer.class);
+        job.setCombinerClass(NgramRF.NRFCombiner.class);
+        job.setPartitionerClass(NgramRF.WordArrayPartitioner.class);
+        FileInputFormat.addInputPath(job,new Path(args[0]));
+        FileOutputFormat.setOutputPath(job,new Path(args[1]));
     }
 }
