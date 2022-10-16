@@ -48,12 +48,14 @@ public class NgramCount {
         }
     }
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+
         if(Integer.parseInt(args[2])<1){
             throw new IllegalArgumentException("N-gram length must be at least 1");
         }
         Configuration conf=new Configuration();
         conf.set("N",args[2]);
         Job job=Job.getInstance(conf,"n-gram count");
+        job.setJarByClass(NgramCount.class);
         job.setMapperClass(NgramCount.NGCMapper.class);
         job.setReducerClass(NgramCount.NGCReducer.class);
         job.setCombinerClass(NgramCount.NGCReducer.class);
