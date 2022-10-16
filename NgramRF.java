@@ -1,4 +1,4 @@
-package main;
+//package main;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -176,7 +176,7 @@ public class NgramRF {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
         if(Integer.parseInt(args[2])<1){
             throw new IllegalArgumentException("N-gram length must be at least 1");
         }
@@ -184,11 +184,13 @@ public class NgramRF {
         conf.set("N",args[2]);
         conf.set("THETA",args[3]);
         Job job=Job.getInstance(conf,"n-gram relative frequency count");
+        job.setJarByClass(NgramRF.class);
         job.setMapperClass(NgramRF.NRFMapper.class);
         job.setReducerClass(NgramRF.NRFReducer.class);
         job.setCombinerClass(NgramRF.NRFCombiner.class);
         job.setPartitionerClass(NgramRF.WordArrayPartitioner.class);
         FileInputFormat.addInputPath(job,new Path(args[0]));
         FileOutputFormat.setOutputPath(job,new Path(args[1]));
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
