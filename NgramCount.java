@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import java.io.IOException;
 
 public class NgramCount {
+
     private static class NGCMapper extends Mapper<Object, Text,Text, IntWritable> {
         private static int N;
 
@@ -23,7 +24,10 @@ public class NgramCount {
 
         @Override
         protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            String[] tokens=value.toString().split("[\\W]+");
+            String[] tokens=value.toString().split("\\W+");
+            if(tokens.length==0){
+                return;
+            }
             int startIndex="".equals(tokens[0])?1:0;
             for(int i=startIndex;i<=tokens.length-N;i++){
                 StringBuilder sb=new StringBuilder();
@@ -61,7 +65,8 @@ public class NgramCount {
         job.setCombinerClass(NgramCount.NGCReducer.class);
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
         System.exit(job.waitForCompletion(true) ? 0 : 1);
-
     }
 }
