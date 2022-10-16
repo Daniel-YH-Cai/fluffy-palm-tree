@@ -1,4 +1,3 @@
-//comment out package as requested in spec
 //package main;
 
 import org.apache.hadoop.conf.Configuration;
@@ -45,6 +44,8 @@ public class WordLengthCount {
         job.setReducerClass(WordLengthCount.WLCReducer.class);
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        job.setOutputKeyClass(IntWritable.class);
+        job.setOutputValueClass(IntWritable.class);
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 
