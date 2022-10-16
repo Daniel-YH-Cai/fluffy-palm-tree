@@ -41,6 +41,9 @@ public class NgramRF {
         protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             if(N==1){
                 String[] tokens=value.toString().split("[\\W]+");
+                if(tokens.length==0){
+                    return;
+                }
                 int startIndex="".equals(tokens[0])?1:0;
                 for(int i=startIndex;i<tokens.length;i++){
                     WordArrayWritable tmp=new WordArrayWritable();
@@ -52,10 +55,14 @@ public class NgramRF {
             }
             else{
                 String[] tokens=value.toString().split("[\\W]+");
+                if(tokens.length==0){
+                    return;
+                }
                 int startIndex="".equals(tokens[0])?1:0;
                 for(int i=startIndex;i<=tokens.length-N;i++){
                     Text[] ngram=new Text[N];
                     for(int j=i;j<=i+N-1;j++) {
+                        ngram[j-i]=new Text();
                         ngram[j-i].set(tokens[j]);
                     }
                     WordArrayWritable waw=new WordArrayWritable();
@@ -72,6 +79,16 @@ public class NgramRF {
             }
         }
     }
+    private static class DummyReducer extends Reducer<WordArrayWritable,IntWritable,WordArrayWritable,DoubleWritable>{
+        @Override
+        protected void reduce(WordArrayWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum=0;
+            for(IntWritable value:values){
+                sum=sum+value.get();
+            }
+            context.write(key,new DoubleWritable(0.0+sum));
+        }
+    }
 
     private static class NRFReducer extends Reducer<WordArrayWritable,IntWritable,WordArrayWritable,DoubleWritable> {
         private static final HashMap<String,Integer> marginalCounts=new HashMap<>();
@@ -81,7 +98,7 @@ public class NgramRF {
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             N=Integer.parseInt(context.getConfiguration().get("N"));
-            THETA=Integer.parseInt(context.getConfiguration().get("THETA"));
+            THETA=Double.parseDouble(context.getConfiguration().get("THETA"));
         }
 
         @Override
@@ -138,11 +155,11 @@ public class NgramRF {
             if(MARGINAL_SIGN.equals(((Text)myVal[1]).toString())&&MARGINAL_SIGN.equals(((Text)yourVal[1]).toString())){
                 return ((Text)myVal[0]).toString().compareTo(((Text)yourVal[0]).toString());
             }
-            if(MARGINAL_SIGN.equals(((Text)myVal[1]).toString())){
-                return 1;
-            }
-            if(MARGINAL_SIGN.equals(((Text)yourVal[1]).toString())){
+            else if(MARGINAL_SIGN.equals(((Text)myVal[1]).toString())){
                 return -1;
+            }
+            else if(MARGINAL_SIGN.equals(((Text)yourVal[1]).toString())){
+                return 1;
             }
             for(int i=0;i<myVal.length;i++){
                 int result=((Text)myVal[i]).toString().compareTo(((Text)yourVal[i]).toString());
@@ -187,10 +204,13 @@ public class NgramRF {
         job.setJarByClass(NgramRF.class);
         job.setMapperClass(NgramRF.NRFMapper.class);
         job.setReducerClass(NgramRF.NRFReducer.class);
+//        job.setReducerClass(NgramRF.DummyReducer.class);
         job.setCombinerClass(NgramRF.NRFCombiner.class);
         job.setPartitionerClass(NgramRF.WordArrayPartitioner.class);
         FileInputFormat.addInputPath(job,new Path(args[0]));
         FileOutputFormat.setOutputPath(job,new Path(args[1]));
+        job.setMapOutputKeyClass(WordArrayWritable.class);
+        job.setMapOutputValueClass(IntWritable.class);
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
