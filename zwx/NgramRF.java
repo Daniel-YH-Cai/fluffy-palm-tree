@@ -92,6 +92,7 @@ public class NgramRF {
                 inputText.remove(i); // remains N - 1 words for next line
                 i--;
             }
+            hashSet.clear();
         }
     }
 
