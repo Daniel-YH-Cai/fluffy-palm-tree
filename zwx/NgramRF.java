@@ -46,6 +46,17 @@ public class NgramRF {
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 
             String[] mapInput = value.toString().split("\\W+");
+
+            if (N == 1){
+                for (int i = 0 ; i < mapInput.length ; i++){
+                    if (!mapInput[i].equals("")){
+                        word.set (mapInput[i]);
+                        context.write(word, H);
+                    }
+
+                }
+                return ;
+            }
             List<String> temp = Arrays.asList(mapInput);
             inputText.addAll(temp);
             for (int i = 0 ; i < inputText.size() ; i++ ){ // remove ""
@@ -109,6 +120,13 @@ public class NgramRF {
 
             MapWritable sumMap = new MapWritable();
             Text subSumKey = new Text("*");
+
+            if (N == 1){
+                DoubleWritable one = new DoubleWritable(1.0);
+                context.write(key, one);
+                return ;
+            }
+
             DoubleWritable result = new DoubleWritable();
             int sum = 0;
             for (MapWritable val : values) {
@@ -128,7 +146,7 @@ public class NgramRF {
                     double freq = ((IntWritable) sumMap.get(k)).get() / (double) sum;
                     if (freq >= theta) {
                         Text sequence = new Text();
-                        sequence.set(key.toString() + " " + k.toString());
+                        sequence.set(key.toString() + k.toString());
                         result.set(freq);
                         context.write(sequence, result);
                     }
@@ -143,7 +161,7 @@ public class NgramRF {
         conf.set("N", args[2]);
         conf.set("theta", args[3]);
         Job job = Job.getInstance(conf, "N-grams RF");
-        job.setJarByClass(NgramCount.class);
+        job.setJarByClass(NgramRF.class);
         job.setMapperClass(NgramRFMapper.class);
         //job.setCombinerClass(NgramRFReducer.class);
         job.setReducerClass(NgramRFReducer.class);
