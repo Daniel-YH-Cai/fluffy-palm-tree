@@ -109,6 +109,40 @@ public class NgramRF {
 
 
 
+    public static class NgramRFCombiner extends Reducer<Text,MapWritable,Text,MapWritable> {
+
+        protected void setup(Reducer.Context context) throws IOException, InterruptedException {
+            N = Integer.parseInt(context.getConfiguration().get("N"));
+            theta = Double.parseDouble(context.getConfiguration().get("theta"));
+        }
+
+        public void reduce(Text key, Iterable<MapWritable> values, Context context) throws IOException, InterruptedException {
+
+            MapWritable sumMap = new MapWritable();
+            Text subSumKey = new Text("*");
+
+            if (N == 1){
+                context.write(key, sumMap);
+                return ;
+            }
+
+            int sum = 0;
+            for (MapWritable val : values) {
+                Set<Writable> keys = val.keySet();
+                sum = sum + ((IntWritable)val.get(subSumKey)).get();
+
+                for (Writable k : keys){
+                    if(sumMap.containsKey(k))
+                        ((IntWritable)sumMap.get(k)).set( ((IntWritable)sumMap.get(k)).get() + ((IntWritable)val.get(k)).get() );
+                    else
+                        sumMap.put( k , val.get(k));
+                }
+                context.write(key, sumMap);
+            }
+
+        }
+    }
+
     public static class NgramRFReducer extends Reducer<Text,MapWritable,Text,DoubleWritable> {
 
         protected void setup(Reducer.Context context) throws IOException, InterruptedException {
@@ -163,7 +197,7 @@ public class NgramRF {
         Job job = Job.getInstance(conf, "N-grams RF");
         job.setJarByClass(NgramRF.class);
         job.setMapperClass(NgramRFMapper.class);
-        //job.setCombinerClass(NgramRFReducer.class);
+        job.setCombinerClass(NgramRFCombiner.class);
         job.setReducerClass(NgramRFReducer.class);
         job.setInputFormatClass(NgramRF.NgramRFTextInputFormat.class);
         job.setMapOutputKeyClass(Text.class);
