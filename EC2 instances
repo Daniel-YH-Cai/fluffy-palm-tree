@@ -1,0 +1,16 @@
+vm1:
+Public IP:  34.197.236.78
+Private IP: 172.31.93.42
+ssh -i "amazonkey.pem" hadoop@ec2-34-197-236-78.compute-1.amazonaws.com
+
+vm2:
+Public IP:  44.198.20.71
+Private IP: 172.31.84.88
+ssh -i "amazonkey.pem" hadoop@ec2-44-198-20-71.compute-1.amazonaws.com
+
+vm3:
+Public IP:  34.231.92.113
+Private IP: 172.31.93.118
+ssh -i "amazonkey.pem" hadoop@ec2-34-231-92-113.compute-1.amazonaws.com
+
+Password: 1234
